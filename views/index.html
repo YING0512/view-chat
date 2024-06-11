@@ -19,22 +19,12 @@
             top: 50px;
             width: 500px;
             margin: 0 auto;
-            display: flex;
+            display: block;
             position: relative;
             background-color: white;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 灰色陰影 */
-        }
-
-        #sidebar {
-            width: 100px;
-            padding-right: 20px;
-            border-right: 1px solid #ccc;
-        }
-
-        #chat {
-            flex: 1;
         }
 
         #status-box {
@@ -77,52 +67,57 @@
         }
 
         .msg {
-            width: 100%;
-            display: inline-block;
-            padding: 5px 5px 5px 10px;
-            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            padding: 5px 10px;
+            margin: 5px 5px;
             border-radius: 5px;
+            word-wrap: break-word; /* 長訊息換行 */
         }
 
         .msg.me {
+            justify-content: flex-end; /* 己方訊息靠右對齊 */
             background-color: lightgreen;
         }
 
         .msg.other {
+            justify-content: flex-start; /* 他人訊息靠左對齊 */
             background-color: lightcoral;
         }
 
-        .msg > span {
-            width: 25%;
-            display: inline-block;
+        .msg > span.name {
+            margin: 0 10px;
         }
 
-        .online-users {
-            margin-top: 10px;
-            font-size: 0.8em;
+        .msg.me > span.name {
+            order: 2; /* 己方訊息名字在右側 */
+        }
+
+        .msg.me > span.msg-text {
+            order: 1; /* 己方訊息文字在左側 */
+        }
+
+        .msg.other > span.name {
+            order: 1; /* 他人訊息名字在左側 */
+        }
+
+        .msg.other > span.msg-text {
+            order: 2; /* 他人訊息文字在右側 */
         }
     </style>
 </head>
 <body>
     <div id="container">
-        <div id="sidebar">
-            <div class="online-users">
-                在線人員：
-                <ul id="online-users-list"></ul>
-            </div>
+        <h1 style="text-align: center;">即時聊天室</h1>
+        <div id="status-box">Server: <span id="status">-</span> / <span id="online">0</span> online.</div>
+        <div id="content">
         </div>
-        <div id="chat">
-            <h1 style="text-align: center;">即時聊天室</h1>
-            <div id="status-box">Server: <span id="status">-</span> / <span id="online">0</span> online.</div>
-            <div id="content">
-            </div>
-            <div id="send-box">
-                <form id="send-form">
-                    <input type="text" name="name" id="name" placeholder="暱稱">
-                    <input type="text" name="msg" id="msg" placeholder="說點什麼？">
-                    <input type="submit" value="送出">
-                </form>
-            </div>
+        <div id="send-box">
+            <form id="send-form">
+                <input type="text" name="name" id="name" placeholder="暱稱">
+                <input type="text" name="msg" id="msg" placeholder="說點什麼？">
+                <input type="submit" value="送出">
+            </form>
         </div>
     </div>
 
@@ -132,7 +127,6 @@
             var online = document.getElementById("online");
             var sendForm = document.getElementById("send-form");
             var content = document.getElementById("content");
-            var onlineUsersList = document.getElementById("online-users-list");
 
             var myName = "";
 
@@ -148,28 +142,18 @@
                 online.innerText = amount;
             });
 
-            socket.on("onlineUsers", function (users) {
-                // 清空在線人員列表
-                onlineUsersList.innerHTML = "";
-                // 添加新的在線人員
-                users.forEach(function (user) {
-                    var li = document.createElement("li");
-                    li.textContent = user;
-                    onlineUsersList.appendChild(li);
-                });
-            });
-
             socket.on("msg", function (d) {
                 var msgBox = document.createElement("div");
                 msgBox.className = "msg";
                 var nameBox = document.createElement("span");
                 nameBox.className = "name";
                 var name = document.createTextNode(d.name);
+                var msgTextBox = document.createElement("span");
+                msgTextBox.className = "msg-text";
                 var msg = document.createTextNode(d.msg);
 
                 nameBox.appendChild(name);
-                msgBox.appendChild(nameBox);
-                msgBox.appendChild(msg);
+                msgTextBox.appendChild(msg);
 
                 if (d.name === myName) {
                     msgBox.classList.add("me");
@@ -177,7 +161,11 @@
                     msgBox.classList.add("other");
                 }
 
+                msgBox.appendChild(nameBox);
+                msgBox.appendChild(msgTextBox);
+
                 content.appendChild(msgBox);
+                content.scrollTop = content.scrollHeight; // 自動滾動到底部
             });
 
             sendForm.addEventListener("submit", function (e) {
