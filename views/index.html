@@ -12,189 +12,172 @@
         html, body {
             padding: 0;
             margin: 0;
-            background-color: #f2f2f2; /* 灰調的背景顏色 */
+            background-color: #e0e0e0; /* 淡灰色背景 */
         }
 
-        #container {
+        #chat-container {
             top: 50px;
-            width: 500px;
+            width: 600px;
             margin: 0 auto;
-            display: block;
-            position: relative;
-            background-color: white;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 灰色陰影 */
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.1); /* 灰色陰影 */
         }
 
-        #status-box {
-            text-align: right;
-            font-size: .6em;
+        #status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: .8em;
+            margin-bottom: 10px;
         }
 
-        #content {
-            width: 100%;
-            height: 350px;
-            border: 1px solid darkolivegreen;
+        #messages {
+            height: 400px;
+            border: 1px solid #808080;
             border-radius: 5px;
-            overflow: auto;
+            overflow-y: scroll;
+            padding: 10px;
+            background-color: #f9f9f9;
             margin-bottom: 20px;
         }
 
-        #send-box {
-            width: 100%;
-            text-align: center;
+        #message-form {
+            display: flex;
+            gap: 10px;
         }
 
-        #send-box input {
-            display: inline-block;
+        #message-form input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
         }
 
-        #send-box input.error {
-            border: 1px solid red;
+        #message-form input[type="submit"] {
+            flex: none;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
         }
 
-        input[name="name"] {
-            width: 15%;
-        }
-
-        input[name="msg"] {
-            width: 70%;
-        }
-
-        input[type="submit"] {
-            width: 10%;
-        }
-
-        .msg {
+        .message {
             display: flex;
             align-items: center;
             padding: 5px 10px;
-            margin: 5px 5px;
+            margin: 5px 0;
             border-radius: 5px;
-            word-wrap: break-word; /* 長訊息換行 */
         }
 
-        .msg.me {
-            justify-content: flex-end; /* 己方訊息靠右對齊 */
-            background-color: lightgreen;
+        .message.my-message {
+            justify-content: flex-end;
+            background-color: #D1FFC6;
         }
 
-        .msg.other {
-            justify-content: flex-start; /* 他人訊息靠左對齊 */
-            background-color: lightcoral;
+        .message.other-message {
+            justify-content: flex-start;
+            background-color: #FFEBEB;
         }
 
-        .msg > span.name {
+        .message .name {
+            font-weight: bold;
             margin: 0 10px;
         }
 
-        .msg.me > span.name {
-            order: 2; /* 己方訊息名字在右側 */
+        .message.my-message .name {
+            order: 2; /* 己方訊息暱稱在右側 */
         }
 
-        .msg.me > span.msg-text {
+        .message.my-message .text {
             order: 1; /* 己方訊息文字在左側 */
         }
 
-        .msg.other > span.name {
-            order: 1; /* 他人訊息名字在左側 */
+        .message.other-message .name {
+            order: 1; /* 他人訊息暱稱在左側 */
         }
 
-        .msg.other > span.msg-text {
+        .message.other-message .text {
             order: 2; /* 他人訊息文字在右側 */
         }
     </style>
 </head>
 <body>
-    <div id="container">
+    <div id="chat-container">
         <h1 style="text-align: center;">即時聊天室</h1>
-        <div id="status-box">Server: <span id="status">-</span> / <span id="online">0</span> online.</div>
-        <div id="content">
+        <div id="status-bar">
+            <span id="status">-</span>
+            <span>在線人數: <span id="online">0</span></span>
         </div>
-        <div id="send-box">
-            <form id="send-form">
-                <input type="text" name="name" id="name" placeholder="暱稱">
-                <input type="text" name="msg" id="msg" placeholder="說點什麼？">
-                <input type="submit" value="送出">
-            </form>
-        </div>
+        <div id="messages"></div>
+        <form id="message-form">
+            <input type="text" name="name" id="name" placeholder="輸入暱稱">
+            <input type="text" name="msg" id="msg" placeholder="輸入訊息">
+            <input type="submit" value="送出">
+        </form>
     </div>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            var status = document.getElementById("status");
-            var online = document.getElementById("online");
-            var sendForm = document.getElementById("send-form");
-            var content = document.getElementById("content");
+            const status = document.getElementById("status");
+            const online = document.getElementById("online");
+            const messageForm = document.getElementById("message-form");
+            const messages = document.getElementById("messages");
 
-            var myName = "";
+            let myName = "";
 
-            socket.on("connect", function () {
-                status.innerText = "Connected.";
+            socket.on("connect", () => {
+                status.innerText = "已連接";
             });
 
-            socket.on("disconnect", function () {
-                status.innerText = "Disconnected.";
+            socket.on("disconnect", () => {
+                status.innerText = "已斷開連接";
             });
 
-            socket.on("online", function (amount) {
+            socket.on("online", (amount) => {
                 online.innerText = amount;
             });
 
-            socket.on("msg", function (d) {
-                var msgBox = document.createElement("div");
-                msgBox.className = "msg";
-                var nameBox = document.createElement("span");
-                nameBox.className = "name";
-                var name = document.createTextNode(d.name);
-                var msgTextBox = document.createElement("span");
-                msgTextBox.className = "msg-text";
-                var msg = document.createTextNode(d.msg);
-
-                nameBox.appendChild(name);
-                msgTextBox.appendChild(msg);
-
-                if (d.name === myName) {
-                    msgBox.classList.add("me");
+            socket.on("msg", (data) => {
+                const msgDiv = document.createElement("div");
+                msgDiv.classList.add("message");
+                if (data.name === myName) {
+                    msgDiv.classList.add("my-message");
                 } else {
-                    msgBox.classList.add("other");
+                    msgDiv.classList.add("other-message");
                 }
 
-                msgBox.appendChild(nameBox);
-                msgBox.appendChild(msgTextBox);
+                const nameSpan = document.createElement("span");
+                nameSpan.classList.add("name");
+                nameSpan.innerText = data.name;
 
-                content.appendChild(msgBox);
-                content.scrollTop = content.scrollHeight; // 自動滾動到底部
+                const msgSpan = document.createElement("span");
+                msgSpan.classList.add("text");
+                msgSpan.innerText = data.msg;
+
+                msgDiv.appendChild(msgSpan);
+                msgDiv.appendChild(nameSpan);
+                messages.appendChild(msgDiv);
+                messages.scrollTop = messages.scrollHeight;
             });
 
-            sendForm.addEventListener("submit", function (e) {
+            messageForm.addEventListener("submit", (e) => {
                 e.preventDefault();
 
-                var ok = true;
-                var formData = {};
-                var formChild = sendForm.children;
+                const formData = new FormData(messageForm);
+                const name = formData.get("name");
+                const msg = formData.get("msg");
 
-                for (var i = 0; i < sendForm.childElementCount; i++) {
-                    var child = formChild[i];
-                    if (child.name !== "") {
-                        var val = child.value;
-                        if (val === "" || !val) {
-                            ok = false;
-                            child.classList.add("error");
-                        } else {
-                            child.classList.remove("error");
-                            formData[child.name] = val;
-                        }
-                    }
+                if (!name || !msg) {
+                    return;
                 }
 
-                if (ok) {
-                    if (!myName) {
-                        myName = formData.name;
-                    }
-                    socket.emit("send", formData);
+                if (!myName) {
+                    myName = name;
                 }
+
+                socket.emit("send", { name, msg });
+                messageForm.reset();
             });
         });
     </script>
