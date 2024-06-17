@@ -15,7 +15,7 @@
             background-color: #e0e0e0; /* 淡灰色背景 */
         }
 
-        #chat-container {
+        #chat-container, #name-container {
             top: 50px;
             width: 600px;
             margin: 0 auto;
@@ -23,6 +23,29 @@
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 0 8px rgba(0, 0, 0, 0.1); /* 灰色陰影 */
+        }
+
+        #chat-container {
+            display: none;
+        }
+
+        #name-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #name-form input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #name-form input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
         }
 
         #status-bar {
@@ -103,6 +126,15 @@
     </style>
 </head>
 <body>
+    <div id="name-container">
+        <h1 style="text-align: center;">請輸入暱稱</h1>
+        <form id="name-form">
+            <input type="text" name="name" id="name" placeholder="輸入暱稱">
+            <input type="text" name="room" id="room" placeholder="輸入聊天室名稱">
+            <input type="submit" value="開始聊天">
+        </form>
+    </div>
+
     <div id="chat-container">
         <h1 style="text-align: center;">即時聊天室</h1>
         <div id="status-bar">
@@ -111,7 +143,6 @@
         </div>
         <div id="messages"></div>
         <form id="message-form">
-            <input type="text" name="name" id="name" placeholder="輸入暱稱">
             <input type="text" name="msg" id="msg" placeholder="輸入訊息">
             <input type="submit" value="送出">
         </form>
@@ -123,8 +154,12 @@
             const online = document.getElementById("online");
             const messageForm = document.getElementById("message-form");
             const messages = document.getElementById("messages");
+            const nameContainer = document.getElementById("name-container");
+            const chatContainer = document.getElementById("chat-container");
+            const nameForm = document.getElementById("name-form");
 
             let myName = "";
+            let myRoom = "";
 
             socket.on("connect", () => {
                 status.innerText = "已連接";
@@ -161,22 +196,29 @@
                 messages.scrollTop = messages.scrollHeight;
             });
 
+            nameForm.addEventListener("submit", (e) => {
+                e.preventDefault();
+                const formData = new FormData(nameForm);
+                myName = formData.get("name");
+                myRoom = formData.get("room");
+                if (myName && myRoom) {
+                    socket.emit('join', { name: myName, room: myRoom });
+                    nameContainer.style.display = "none";
+                    chatContainer.style.display = "block";
+                }
+            });
+
             messageForm.addEventListener("submit", (e) => {
                 e.preventDefault();
 
                 const formData = new FormData(messageForm);
-                const name = formData.get("name");
                 const msg = formData.get("msg");
 
-                if (!name || !msg) {
+                if (!myName || !msg) {
                     return;
                 }
 
-                if (!myName) {
-                    myName = name;
-                }
-
-                socket.emit("send", { name, msg });
+                socket.emit("send", { name: myName, msg, room: myRoom });
                 messageForm.reset();
             });
         });
